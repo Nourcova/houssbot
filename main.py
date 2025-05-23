@@ -1,97 +1,68 @@
-#!/usr/bin/env python
-# pyright: reportUnusedVariable=false, reportGeneralTypeIssues=false
-"""
-
-Hit RUN to execute the program.
-
-You can also deploy a stable, public version of your project, unaffected by the changes you make in the workspace.
-
-This proof-of-concept Telegram bot takes a user's text messages and turns them into stylish images. Utilizing Python, the `python-telegram-bot` library, and PIL for image manipulation, it offers a quick and interactive way to generate content.
-
-Read the README.md file for more information on how to get and deploy Telegram bots.
-"""
-
+from telegram import Update, Message
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes, CommandHandler
 import logging
 
-from telegram import __version__ as TG_VER
-
-try:
-  from telegram import __version_info__
-except ImportError:
-  __version_info__ = (0, 0, 0, 0, 0)  # type: ignore[assignment]
-
-if __version_info__ < (20, 0, 0, "alpha", 1):
-  raise RuntimeError(
-      f"This example is not compatible with your current PTB version {TG_VER}. To view the "
-      f"{TG_VER} version of this example, "
-      f"visit https://docs.python-telegram-bot.org/en/v{TG_VER}/examples.html")
-
-from telegram import ForceReply, Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
-from PIL import Image, ImageDraw, ImageFont
-import os
-
-my_bot_token = os.environ['YOUR_BOT_TOKEN']
-
 # Enable logging
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO)
-# set higher logging level for httpx to avoid all GET and POST requests being logged
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Store question and reply mappings
+question_map = {}  # key: forwarded_message_id, value: original_user_id
 
-# Define a few command handlers. These usually take the two arguments update and
-# context.
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-  """Send a message when the command /start is issued."""
-  user = update.effective_user
-  await update.message.reply_html(
-      rf"Hi {user.mention_html()}!",
-      reply_markup=ForceReply(selective=True),
-  )
+TEACHERS_GROUP_ID = -1002537355659  # Replace with your teacher group chat ID
 
 
-async def help_command(update: Update,
-                       context: ContextTypes.DEFAULT_TYPE) -> None:
-  """Send a message when the command /help is issued."""
-  await update.message.reply_text("Help!")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Hi! Send me your question and I’ll get an answer from a teacher.")
 
 
-async def stylize(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-  user_message = update.message.text
-  if user_message is None:
-    await update.message.reply_text("Please send an image to stylize.")
-    return
+async def handle_student_question(update: Update,
+                                  context: ContextTypes.DEFAULT_TYPE):
+    user_message = update.message
+    user_id = user_message.from_user.id
 
-  img = Image.new('RGB', (500, 200), color=(73, 109, 137))
-  d = ImageDraw.Draw(img)
-  fnt = ImageFont.load_default()
-  d.text((50, 90), user_message, font=fnt, fill=(255, 255, 0))
+    # Forward question to teacher group
+    forwarded_message = await context.bot.forward_message(
+        chat_id=TEACHERS_GROUP_ID,
+        from_chat_id=user_id,
+        message_id=user_message.message_id)
 
-  img.save('styled_text.png')
-  with open('styled_text.png', 'rb') as photo:
-    await update.message.reply_photo(photo=photo)
+    # Save mapping
+    question_map[forwarded_message.message_id] = user_id
 
-
-def main() -> None:
-  """Start the bot."""
-  # Create the Application and pass it your bot's token.
-  application = Application.builder().token(my_bot_token).build()
-
-  # on different commands - answer in Telegram
-  application.add_handler(CommandHandler("start", start))
-  application.add_handler(CommandHandler("help", help_command))
-
-  # on non command i.e message - echo the message on Telegram
-  application.add_handler(
-      MessageHandler(filters.TEXT & ~filters.COMMAND, stylize))
-
-  # Run the bot until the user presses Ctrl-C
-  application.run_polling(allowed_updates=Update.ALL_TYPES)
+    await user_message.reply_text(
+        "Your question has been sent to a teacher. Please wait for a response."
+    )
 
 
-if __name__ == "__main__":
-  main()
+async def handle_teacher_reply(update: Update,
+                               context: ContextTypes.DEFAULT_TYPE):
+    reply = update.message
+    if reply.reply_to_message and reply.chat_id == TEACHERS_GROUP_ID:
+        original_message_id = reply.reply_to_message.message_id
+        if original_message_id in question_map:
+            student_id = question_map[original_message_id]
+            await context.bot.send_message(
+                chat_id=student_id, text=f"Teacher's answer:\n{reply.text}")
+        else:
+            logger.info("No mapping found for replied message.")
+
+
+def main():
+    app = ApplicationBuilder().token(
+        "7779445610:AAGKpTrVjgmQTrOkhuhu7q3CwVa3BwsaGFM").build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(
+        MessageHandler(filters.TEXT & filters.ChatType.PRIVATE,
+                       handle_student_question))
+    app.add_handler(
+        MessageHandler(filters.REPLY & filters.Chat(TEACHERS_GROUP_ID),
+                       handle_teacher_reply))
+
+    app.run_polling()
+
+
+if __name__ == '__main__':
+    main()
