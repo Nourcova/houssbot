@@ -60,7 +60,7 @@ async def handle_teacher_reply(update: Update,
         if original_message_id in question_map:
             student_id = question_map[original_message_id]
             await context.bot.send_message(chat_id=student_id,
-                                           text=f"الاجابة: \n{reply.text}")
+                                           text=f"الإجابة: \n{reply.text}")
         else:
             logger.info("No mapping found for replied message.")
 
