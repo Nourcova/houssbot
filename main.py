@@ -14,25 +14,25 @@ TEACHERS_GROUP_ID = -1002690422841  # Replace with your teacher group chat ID
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "••
+    await update.message.reply_text("""••
 مرحبًا بكم في المَعلَمة العتيقة
 
 بحُسن السؤال يُدرك الفهم.
 
 نرجو مراعاة ما يلي:
-•يُفضّل أن يكون المحتوى في رسالة واحدة ما أمكن.
-•يُستحسن وضع وسم للمادة في بداية الرسالة، مثلًا: | #فقه #إدارة.
-•كتابة الاسم في نهاية الرسالة اختياري.
-•عند طرح الأسئلة:
+• يُفضّل أن يكون المحتوى في رسالة واحدة ما أمكن.
+• يُستحسن وضع وسم للمادة في بداية الرسالة،
+مثلًا: | #فقه #إدارة.
+• كتابة الاسم في نهاية الرسالة اختياري.
+• عند طرح الأسئلة:
 * احرصوا على الوضوح والتحديد.
-* يُرجى ذكر السياق (الدرس، الصفحة، الدقيقة…).
+* يُرجى ذكر السياق (الدرس، الصفحة، الدقيقة)
 * تجنّبوا العموميات والتكرار.
 
 هذا البوت هو همزة وصل بينكم وبين الإدارة العلمية للمَعلَمة، ونأمل منكم الإلتزام بهذه الإرشادات لتمام النفع وديمومة الفائدة.
 
 إدارة المَعَلمة العتيقة
-••")
+••""")
 
 
 async def handle_student_question(update: Update,
@@ -49,9 +49,7 @@ async def handle_student_question(update: Update,
     # Save mapping
     question_map[forwarded_message.message_id] = user_id
 
-    await user_message.reply_text(
-        "سوف تتم الإجابة في أقرب وقت"
-    )
+    await user_message.reply_text("سوف تتم الإجابة في أقرب وقت")
 
 
 async def handle_teacher_reply(update: Update,
@@ -61,8 +59,8 @@ async def handle_teacher_reply(update: Update,
         original_message_id = reply.reply_to_message.message_id
         if original_message_id in question_map:
             student_id = question_map[original_message_id]
-            await context.bot.send_message(
-                chat_id=student_id, text=f"الاجابة: \n{reply.text}")
+            await context.bot.send_message(chat_id=student_id,
+                                           text=f"الاجابة: \n{reply.text}")
         else:
             logger.info("No mapping found for replied message.")
 
