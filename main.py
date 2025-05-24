@@ -1,6 +1,7 @@
 from telegram import Update, Message
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes, CommandHandler
 import logging
+import os
 
 # Enable logging
 logging.basicConfig(level=logging.INFO)
@@ -9,12 +10,29 @@ logger = logging.getLogger(__name__)
 # Store question and reply mappings
 question_map = {}  # key: forwarded_message_id, value: original_user_id
 
-TEACHERS_GROUP_ID = -1002537355659  # Replace with your teacher group chat ID
+TEACHERS_GROUP_ID = -1002690422841  # Replace with your teacher group chat ID
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Hi! Send me your question and I’ll get an answer from a teacher.")
+        "••
+مرحبًا بكم في المَعلَمة العتيقة
+
+بحُسن السؤال يُدرك الفهم.
+
+نرجو مراعاة ما يلي:
+•يُفضّل أن يكون المحتوى في رسالة واحدة ما أمكن.
+•يُستحسن وضع وسم للمادة في بداية الرسالة، مثلًا: | #فقه #إدارة.
+•كتابة الاسم في نهاية الرسالة اختياري.
+•عند طرح الأسئلة:
+* احرصوا على الوضوح والتحديد.
+* يُرجى ذكر السياق (الدرس، الصفحة، الدقيقة…).
+* تجنّبوا العموميات والتكرار.
+
+هذا البوت هو همزة وصل بينكم وبين الإدارة العلمية للمَعلَمة، ونأمل منكم الإلتزام بهذه الإرشادات لتمام النفع وديمومة الفائدة.
+
+إدارة المَعَلمة العتيقة
+••")
 
 
 async def handle_student_question(update: Update,
@@ -32,7 +50,7 @@ async def handle_student_question(update: Update,
     question_map[forwarded_message.message_id] = user_id
 
     await user_message.reply_text(
-        "Your question has been sent to a teacher. Please wait for a response."
+        "سوف تتم الإجابة في أقرب وقت"
     )
 
 
@@ -44,14 +62,14 @@ async def handle_teacher_reply(update: Update,
         if original_message_id in question_map:
             student_id = question_map[original_message_id]
             await context.bot.send_message(
-                chat_id=student_id, text=f"Teacher's answer:\n{reply.text}")
+                chat_id=student_id, text=f"الاجابة: \n{reply.text}")
         else:
             logger.info("No mapping found for replied message.")
 
 
 def main():
     app = ApplicationBuilder().token(
-        "7779445610:AAGKpTrVjgmQTrOkhuhu7q3CwVa3BwsaGFM").build()
+        "7979192547:AAF4xyuKO6EIeh9IXT8hUYjRptIhX-Ko4Yw").build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(
